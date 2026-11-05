@@ -1,4 +1,4 @@
-在线实验链接：待填写 GitHub Pages 发布后的 HTTPS 地址
+在线实验链接：https://bnu-engpsy-fall26.github.io/wangyunhan-202311180034/
 
 # 注意实验室：经典注意实验复现与改进
 
