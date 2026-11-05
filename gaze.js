@@ -1,6 +1,6 @@
 /* Optional webcam estimates. No video recording, automatic uploads or task-click training. */
 globalThis.GazeLab = (() => {
-  const VERSION='webgazer-aoi-v1.6', MAX_GAP=200, STEP=50;
+  const VERSION='webgazer-aoi-v1.7', MAX_GAP=200, STEP=50;
   let enabled=false, ready=false, busy=false, generation=0, calibration=null;
   let active=null, validation=null, owner=null, lastSample=-Infinity, loadPromise=null;
   let selected=false,paused=false,lastIssue=null,callbacks=0,predictions=0,nullPredictions=0,lastPredictionAt=null,lastBadgeAt=-Infinity,healthTimer=null;
@@ -198,7 +198,7 @@ globalThis.GazeLab = (() => {
         if(token!==generation)return;
         const [x,y]=points[i];target.style.left=x+'px';target.style.top=y+'px';target.disabled=false;target.textContent='5';
         const shownAt=performance.now();
-        let clicks=0;info.textContent=`校准 ${i+1}/9：保持头部不动，注视圆点，每隔约半秒点击，共5次。`;
+        let clicks=0;info.textContent=`校准 ${i+1}/9：保持头部不动，始终注视固定中心小点，每隔约半秒点击；靶标内数字表示剩余次数。`;
         await new Promise(resolve=>{
           let last=-Infinity;target.onclick=()=>{
             if(performance.now()-shownAt<800||performance.now()-last<500)return;last=performance.now();
@@ -231,7 +231,7 @@ globalThis.GazeLab = (() => {
       const threshold=Math.min(size.width,size.height)*.15;
       const geometryOK=[...trainingTargets,...results].every(p=>p.layoutErrorPx<=2);
       ready=geometryOK&&sameSize(size)&&results.every(r=>r.n>=8)&&error!==null&&error<=threshold;
-      calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,targetSettleMs:800,validationSettleMs:1000,validationMeasureMs:2500,targetAppearance:'center-count-breathing-ring-v2',
+      calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,targetSettleMs:800,validationSettleMs:1000,validationMeasureMs:2500,targetAppearance:'persistent-center-dot-in-target-count-v3',
         trainingCount:trainingTargets.length,trainingTargets,geometryOK,devicePixelRatio:devicePixelRatio||1,visualViewport:window.visualViewport?{width:window.visualViewport.width,height:window.visualViewport.height,scale:window.visualViewport.scale,offsetLeft:window.visualViewport.offsetLeft,offsetTop:window.visualViewport.offsetTop}:null,
         validation:results,medianErrorPx:error,thresholdPx:threshold,passed:ready};
       if(el('gaze-diagnostic'))el('gaze-diagnostic').hidden=false;
