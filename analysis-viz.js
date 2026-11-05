@@ -6,6 +6,19 @@
   const ok=x=>typeof x==='number'&&Number.isFinite(x),mean=A.mean;
   const colors=['#2766ab','#bc8530'],states={correct:'#2766ab',error:'#bc5f37',timeout:'#7c8da0',invalid:'#b6bec9'};
   const names={...L,tree:'树冠',building:'遮阳篷',flowers:'花簇',sign:'路牌',person:'行人',bicycle:'自行车',car:'车辆',bench:'座椅',scene_other:'图内其他',outside:'窗口其他',phone_idle:'手机待机'};
+  const gazeReasons={not_enabled:'未启用或已手动关闭',calibration_required:'未通过验证或需重新校准',calibration_failed:'五点独立验证未通过',startup_failed:'摄像头/模型启动失败',calibration_interrupted:'校准被窗口或前台变化打断',participant_changed:'匿名编号改变',camera_stopped:'摄像头被关闭',camera_disconnected:'摄像头断开',resume_failed:'前台恢复采样失败',viewport_changed:'窗口尺寸改变',viewport_scrolled:'试次内页面滚动',focus_lost:'试次内失焦',page_hidden:'试次进入后台',no_predictions:'没有收到预测',no_valid_predictions:'预测均无效或超出窗口',sample_count_below_10:'有效预测不足10条',coverage_below_50pct:'有效时间覆盖不足50%'};
+  function reasonsFor(row){
+    const e=row.eyeTracking,reasons=[...(row.invalidReasons||[]),...(e?.invalidReasons||[])];
+    if(row.invalidReason)reasons.push(row.invalidReason);
+    if(!e)reasons.push('not_enabled');
+    else if(!e.summary?.usable){
+      if(!e.requested)reasons.push('not_enabled');
+      else{if(!e.calibrated)reasons.push('calibration_required');if(!e.summary?.sampleCount)reasons.push('no_predictions');if((e.summary?.validCount||0)<10)reasons.push('sample_count_below_10');if((e.summary?.coverage||0)<.5)reasons.push('coverage_below_50pct')}
+    }return [...new Set(reasons)];
+  }
+  function diagnosisHTML(rows){
+    return '<details class="viz-methods" open><summary>为什么眼动试次没有纳入？</summary><p>九点点击之后还需五点独立验证通过。以下逐次列出采样、质量与异常原因；原因可重叠，质量门槛未降低。</p><div class="viz-table-scroll"><table><tr><th>记录</th><th>启用/校准</th><th>记录/有效预测</th><th>覆盖率</th><th>最大采样间隔</th><th>眼动纳入</th><th>原因</th></tr>'+rows.map((r,i)=>{const e=r.eyeTracking,s=e?.summary,why=reasonsFor(r);return `<tr><td>${i+1}</td><td>${e?.requested?'是':'否'} / ${e?.calibrated?'是':'否'}</td><td>${s?.sampleCount??0} / ${s?.validCount??0}</td><td>${ok(s?.coverage)?F(s.coverage*100)+'%':'—'}</td><td>${ok(s?.maxPredictionGapMs)?F(s.maxPredictionGapMs,0)+'ms':'—'}</td><td>${r.valid!==0&&s?.usable?'是':'否'}</td><td>${E(why.length?why.map(k=>gazeReasons[k]||k).join('；'):'无已记录异常')}</td></tr>`}).join('')+'</table></div><p>覆盖只累计相邻≤200ms的有效样本，覆盖率须≥50%，有效预测须≥10；有预测但间隔过长也可能不纳入。修改后的程序会在页面持续显示眼动状态，JSON含诊断快照。</p></details>';
+  }
   let counter=0;const records=new Map();
   function svg(title,body,height=280,width=760){return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${E(title)}"><title>${E(title)}</title>${body}</svg>`}
   function figure(title,subtitle,body){return `<figure class="viz-figure"><figcaption><strong>${E(title)}</strong><span>${E(subtitle)}</span></figcaption>${body}</figure>`}
@@ -56,7 +69,7 @@
   }
   function trialDetail(row,i,exp){
     const state=outcome(row),labels={correct:'正确',error:'错误',timeout:'超时',invalid:'无效'};
-    const fields=[['条件',L[row.cond]],['结果',labels[state]],['实际响应RT',row.valid===0?'不纳入统计':ok(row.rt)?F(row.rt,0)+' ms':'无响应时间'],['事件/目标',exp==='bike_video_seev'?`${row.event==='hazard'?'危险':'无危险'} · ${{front:'前方',left:'左镜',right:'右镜'}[row.source]||'未记录来源'}`:names[row.target]||row.target],['眼动可用',row.eyeTracking?.summary?.usable===1?'是':'否'],['异常原因',(row.invalidReasons||row.eyeTracking?.invalidReasons||[]).join('、')||row.invalidReason||'无已记录异常']];
+    const fields=[['条件',L[row.cond]],['结果',labels[state]],['实际响应RT',row.valid===0?'不纳入统计':ok(row.rt)?F(row.rt,0)+' ms':'无响应时间'],['事件/目标',exp==='bike_video_seev'?`${row.event==='hazard'?'危险':'无危险'} · ${{front:'前方',left:'左镜',right:'右镜'}[row.source]||'未记录来源'}`:names[row.target]||row.target],['眼动可用',row.eyeTracking?.summary?.usable===1?'是':'否'],['异常原因',reasonsFor(row).map(k=>gazeReasons[k]||k).join('；')||'无已记录异常']];
     return `<div class="viz-trial-heading"><b>记录 ${i+1}</b><span class="viz-state" style="--state-color:${states[state]}">${labels[state]}</span></div><dl class="viz-detail-grid">${fields.map(([k,v])=>`<div><dt>${E(k)}</dt><dd>${E(v)}</dd></div>`).join('')}</dl>`;
   }
   function trialExplorer(id,rows,exp){return `<div class="analysis-card">${timeline(rows,exp)}<h3>点击查看单次记录</h3><div class="viz-trial-grid">${rows.map((r,i)=>`<button type="button" data-inspect-trial="${i}" class="viz-trial ${outcome(r)}" aria-label="记录${i+1} ${E(L[r.cond])}" aria-pressed="${i===0}"><small>${C[exp].indexOf(r.cond)===0?'A':'B'}</small><b>${i+1}</b><span>${{correct:'✓',error:'×',timeout:'超时',invalid:'无效'}[outcome(r)]}</span></button>`).join('')}</div><div data-trial-detail aria-live="polite">${rows.length?trialDetail(rows[0],0,exp):empty('暂无试次','完成正式任务后显示。')}</div></div>`}
@@ -91,7 +104,7 @@
   }
   function eyePanel(id,rows,exp,z){
     const available=rows.map((r,i)=>({r,i})).filter(({r})=>r.eyeTracking?.samples?.length),selected=available[0];
-    let html='<section class="analysis-card"><h2>眼动数据质量</h2>'+quality(rows,exp,z)+'</section>';
+    let html='<section class="analysis-card"><h2>眼动数据质量</h2>'+quality(rows,exp,z)+diagnosisHTML(rows)+'</section>';
     if(exp==='bike_video_seev')html+=modelHTML(z);
     else html+='<section class="analysis-card">'+compare(z,exp,'targetDwellPercent','目标AOI停留占比','%')+compare(z,exp,'targetFirstEntryMs','首次估计进入目标',' ms',Math.max(1000,...C[exp].map(c=>z[c].targetFirstEntryMs).filter(ok)))+'<p class="viz-footnote">首次进入仅在有目标进入记录的试次计算，样本数 '+C[exp].map(c=>L[c]+' '+z[c].targetFirstEntryN).join(' / ')+'；不是首次注视。未进入保留缺失。</p></section>';
     html+='<section class="analysis-card"><div class="viz-section-head"><h2>单次视线轨迹</h2>'+(available.length?'<label>选择记录 <select data-gaze-select>'+available.map(({r,i})=>`<option value="${i}">记录${i+1} · ${E(L[r.cond])}${r.eyeTracking.summary.usable?'':' · 质量未达标'}</option>`).join('')+'</select></label>':'')+'</div><div data-gaze-map>'+gazeMap(selected?.r)+'</div></section>';return html;

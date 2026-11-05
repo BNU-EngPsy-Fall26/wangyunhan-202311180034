@@ -1,10 +1,12 @@
 /* Optional webcam estimates. No video recording, automatic uploads or task-click training. */
 globalThis.GazeLab = (() => {
-  const VERSION='webgazer-aoi-v1', MAX_GAP=200, STEP=50;
+  const VERSION='webgazer-aoi-v1.1', MAX_GAP=200, STEP=50;
   let enabled=false, ready=false, busy=false, generation=0, calibration=null;
   let active=null, validation=null, owner=null, lastSample=-Infinity, loadPromise=null;
+  let selected=false,paused=false,lastIssue=null,callbacks=0,predictions=0,nullPredictions=0,lastPredictionAt=null,lastBadgeAt=-Infinity,healthTimer=null;
   const el=id=>document.getElementById(id);
-  const status=t=>{el('gaze-status').textContent=t};
+  const badge=t=>{const b=el('gaze-live-status');if(b){b.textContent=t;b.hidden=false}};
+  const status=t=>{el('gaze-status').textContent=t;badge(t)};
   const viewport=()=>({width:innerWidth,height:innerHeight,dpr:devicePixelRatio||1});
   const sameSize=v=>v&&v.width===innerWidth&&v.height===innerHeight;
   const rect=r=>({x:r.left,y:r.top,w:r.width,h:r.height});
@@ -20,15 +22,48 @@ globalThis.GazeLab = (() => {
     return loadPromise;
   }
   function note(reason){if(active&&!active.reasons.includes(reason))active.reasons.push(reason)}
-  function stop(message='眼动已关闭；可继续行为任务。'){
-    generation++;enabled=false;ready=false;validation=null;
-    note('camera_stopped');
+  function invalidate(reason,message){note(reason);if(active)active.recording=false;lastIssue=reason;if(message)status(message)}
+  function diagnostics(){return {version:VERSION,selected,enabled,ready,paused,callbacks,predictions,nullPredictions,
+    lastPredictionAgeMs:lastPredictionAt===null?null:Math.round(performance.now()-lastPredictionAt),lastIssue,
+    calibrationPassed:calibration?.passed??null,validationCounts:calibration?.validation?.map(p=>p.n)||[],medianErrorPx:calibration?.medianErrorPx??null}}
+  function stop(message='眼动已关闭；可继续行为任务。',reason='camera_stopped',manual=true){
+    generation++;enabled=false;ready=false;paused=false;validation=null;
+    globalThis.clearInterval?.(healthTimer);healthTimer=null;
+    if(manual)selected=false;
+    invalidate(reason);lastIssue=reason;
     const wg=globalThis.webgazer;
     wg?.pause();wg?.removeMouseEventListeners();
     // WebGazer.end alone does not stop the webcam stream in the vendored version.
     const feed=el('webgazerVideoFeed');feed?.srcObject?.getTracks().forEach(t=>t.stop());
     if(wg&&feed){try{wg.end()}catch(_){} }
     el('gaze-overlay').hidden=true;el('gaze-stop-live').hidden=true;status(message);
+  }
+  function receive(data){
+    if(!enabled||paused)return;
+    callbacks++;
+    if(data&&Number.isFinite(data.x)&&Number.isFinite(data.y)){predictions++;lastPredictionAt=performance.now()}else nullPredictions++;
+    if(active?.recording||validation)listener(data);
+    const now=performance.now();
+    renderHealth(now);
+  }
+  function renderHealth(now=performance.now()){
+    if(!enabled||paused||busy)return;
+    if(now-lastBadgeAt>=1000){
+      lastBadgeAt=now;
+      if(active?.recording)badge(active.samples.length===0&&now-active.start>2000?'眼动已进入试次，但2秒未收到预测；请检查脸部、光线和摄像头。':`眼动采集中 · ${active.samples.length}条记录 / ${active.samples.filter(s=>s.valid).length}条有效预测`);
+      else if(active?.requested&&!active.recording)badge('当前试次眼动已标异常；数据保留，后续试次会重新检查采样。');
+      else if(ready)badge(lastPredictionAt===null||now-lastPredictionAt>2000?'眼动已校准，但最近未收到视线预测；请检查脸部是否在镜头内。':'眼动已就绪 · 正在接收视线预测');
+    }
+  }
+  function suspend(reason,message){
+    if(!enabled)return;
+    if(busy){stop('校准/验证期间页面离开前台，请重新校准。','calibration_interrupted',false);return}
+    invalidate(reason,message);paused=true;globalThis.webgazer?.pause();
+  }
+  function resume(){
+    if(!enabled||!paused||!ready||document.hidden||document.hasFocus?.()===false)return;
+    paused=false;
+    Promise.resolve(globalThis.webgazer?.resume?.()).then(()=>{if(enabled&&!paused)badge('眼动已恢复；受失焦影响的当前试次仍不纳入，后续试次重新采样。')}).catch(e=>stop('眼动恢复失败：'+e.message,'resume_failed',false));
   }
   function label(snapshot,x,y){
     for(const a of snapshot.aois)if(inside(a.rect,x,y))return a.name;
@@ -66,18 +101,25 @@ globalThis.GazeLab = (() => {
   }
   function begin(kind,item,phase,origin=performance.now()){
     if(active)end();
-    const requested=enabled,calibrated=ready&&sameSize(calibration?.viewport);
+    // Normalize page position before capturing AOIs. Delayed automatic scroll events
+    // at this same position must not terminate the webcam for subsequent trials.
+    window.scrollTo?.(0,0);
+    const requested=selected,calibrated=enabled&&ready&&!paused&&sameSize(calibration?.viewport);
     active={start:origin,requested,calibrated,samples:[],reasons:[],snapshot:snapshot(kind,item),phase,
-      calibration:calibration?JSON.parse(JSON.stringify(calibration)):null};lastSample=-Infinity;
+      calibration:calibration?JSON.parse(JSON.stringify(calibration)):null,startDiagnostics:diagnostics()};lastSample=-Infinity;
     if(requested&&!calibrated)active.reasons.push('calibration_required');
     if(!requested)active.reasons.push('not_enabled');
+    if(requested&&!enabled&&lastIssue)active.reasons.push(lastIssue);
     if(!requested||!calibrated)active.recording=false;else active.recording=true;
+    if(active.recording&&document.hidden)invalidate('page_hidden');
+    if(requested)badge(active.recording?'眼动已开始采样；请保持页面前台与窗口不变。':'眼动未进入采样：请返回首页查看校准/验证状态。');
   }
   function end(){
     if(!active)return null;
     const a=active;active=null;
     const durationMs=Math.max(0,Math.round(performance.now()-a.start));
-    const samples=a.recording?a.samples:[],valid=samples.filter(s=>s.valid),dwellMs={},firstEntryMs={};
+    // Keep the samples already captured even when a later event invalidates the trial.
+    const samples=a.samples,valid=samples.filter(s=>s.valid),dwellMs={},firstEntryMs={};
     let coveredMs=0;
     for(let i=0;i<samples.length;i++){
       const s=samples[i];if(!s.valid)continue;
@@ -86,10 +128,18 @@ globalThis.GazeLab = (() => {
       const n=samples[i+1];if(n?.valid&&n.t-s.t<=MAX_GAP){const dt=n.t-s.t;coveredMs+=dt;dwellMs[s.aoi]=(dwellMs[s.aoi]||0)+dt}
     }
     const coverage=durationMs?coveredMs/durationMs:0;
+    const reasons=[...a.reasons];
+    if(a.requested){
+      if(!samples.length)reasons.push('no_predictions');
+      else if(!valid.length)reasons.push('no_valid_predictions');
+      if(valid.length<10)reasons.push('sample_count_below_10');
+      if(coverage<.5)reasons.push('coverage_below_50pct');
+    }
+    const gaps=samples.slice(1).map((s,i)=>s.t-samples[i].t);
     return {version:VERSION,requested:a.requested,calibrated:a.calibrated,calibration:a.calibration,
-      startPerformanceMs:a.start,durationMs,sampleIntervalMinimumMs:STEP,maxBridgeGapMs:MAX_GAP,samples,snapshot:a.snapshot,
+      startPerformanceMs:a.start,durationMs,sampleIntervalMinimumMs:STEP,maxBridgeGapMs:MAX_GAP,samples,snapshot:a.snapshot,startDiagnostics:a.startDiagnostics,
       summary:{sampleCount:samples.length,validCount:valid.length,coveredMs,coverage:+coverage.toFixed(4),dwellMs,firstEntryMs,
-        usable:Number(a.recording&&a.reasons.length===0&&coverage>=.5&&valid.length>=10)},invalidReasons:a.reasons};
+        maxPredictionGapMs:gaps.length?Math.max(...gaps):null,usable:Number(a.recording&&reasons.length===0&&coverage>=.5&&valid.length>=10)},invalidReasons:[...new Set(reasons)]};
   }
   async function calibrate(){
     if(busy)return;
@@ -102,17 +152,18 @@ globalThis.GazeLab = (() => {
       status('当前地址不支持眼动。请通过 http://localhost:8000/ 或 HTTPS 打开；不要双击HTML，也不要使用127.0.0.1或局域网HTTP地址。行为任务仍可进行。');return;
     }
     if(!isSecureContext||!navigator.mediaDevices?.getUserMedia){status('摄像头需要 HTTPS 或 localhost 安全环境；当前仍可完成行为任务。');return}
-    busy=true;el('gaze-enable').disabled=true;stop('正在启动摄像头…');const token=generation;
+    busy=true;el('gaze-enable').disabled=true;stop('正在启动摄像头…');selected=true;calibration=null;lastIssue=null;callbacks=0;predictions=0;nullPredictions=0;lastPredictionAt=null;lastBadgeAt=-Infinity;const token=generation;
     try{
       await load();if(token!==generation)return;
       const wg=globalThis.webgazer;
       wg.saveDataAcrossSessions(false).setRegression('ridge').showPredictionPoints(false);
       await wg.clearData();
-      wg.setGazeListener(data=>{if(enabled&&(active?.recording||validation))listener(data)});
+      wg.setGazeListener(receive);
       await wg.begin();
       if(token!==generation){stop();return}
       enabled=true;owner=el('participant').value.trim();el('gaze-stop-live').hidden=false;
-      el('webgazerVideoFeed')?.srcObject?.getTracks().forEach(track=>track.addEventListener('ended',()=>{if(enabled)stop('摄像头已断开，请重新启用并校准。')}));
+      healthTimer=globalThis.setInterval?.(()=>renderHealth(),1000);
+      el('webgazerVideoFeed')?.srcObject?.getTracks().forEach(track=>track.addEventListener('ended',()=>{if(enabled)stop('摄像头已断开，请重新启用并校准。','camera_disconnected',false)}));
       wg.removeMouseEventListeners();wg.showVideoPreview(true);
       // Warm the local face model before calibration; model failures reach this catch.
       await wg.getTracker().init();if(token!==generation)return;
@@ -135,11 +186,12 @@ globalThis.GazeLab = (() => {
         });target.textContent='●';
       }
       if(token!==generation)return;
-      info.textContent='独立验证：只看圆点，不点击。';target.disabled=true;
+      info.textContent='九点点击完成；接下来还需通过五点独立验证。只看圆点，不点击。';target.disabled=true;
       const results=[];
       for(const [nx,ny] of [[.25,.25],[.75,.25],[.5,.5],[.25,.75],[.75,.75]]){
         if(token!==generation)return;
         const x=nx*size.width,y=ny*size.height;target.style.left=x+'px';target.style.top=y+'px';
+        info.textContent=`独立验证 ${results.length+1}/5：只看圆点，不点击。九点点击完成不等于验证通过。`;
         validation={x,y,from:performance.now()+500,errors:[]};await wait(1800);
         if(token!==generation)return;
         results.push({x,y,n:validation.errors.length,medianErrorPx:median(validation.errors)});validation=null;
@@ -150,13 +202,14 @@ globalThis.GazeLab = (() => {
       calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,
         validation:results,medianErrorPx:error,thresholdPx:threshold,passed:ready};
       overlay.hidden=true;
-      if(ready)status(`眼动已就绪：验证误差中位数 ${Math.round(error)} px。可开始任务；头部、窗口或匿名编号变化后需重校准。`);
-      else stop('眼动校准未达标，请调整光线与坐姿后重试；行为任务仍可进行。');
-    }catch(e){stop('眼动启动失败：'+e.message+'。可重试或继续行为任务。')}
+      if(ready){lastIssue=null;status(`眼动已就绪：五点验证通过，误差中位数 ${Math.round(error)} px。窗口或匿名编号变化后需重校准。`)}
+      else stop(`五点独立验证未通过：各点有效预测数 ${results.map(r=>r.n).join('/')}（每点至少8）；误差 ${error===null?'缺失':Math.round(error)+'px'}，阈值 ${Math.round(threshold)}px。请调整光线/坐姿后重试。`,'calibration_failed',false);
+    }catch(e){stop('眼动启动失败：'+e.message+'。可重试或继续行为任务。','startup_failed',false)}
     finally{busy=false;el('gaze-enable').disabled=false}
   }
   function check(){
-    if(enabled&&(owner!==el('participant').value.trim()||!ready||!sameSize(calibration?.viewport))){stop('匿名编号或窗口变化，眼动已关闭，请重新校准。')}
+    if(enabled&&owner!==el('participant').value.trim()){stop('匿名编号变化，眼动已关闭，请重新校准。','participant_changed',false)}
+    else if(enabled&&!sameSize(calibration?.viewport)){ready=false;invalidate('viewport_changed','窗口变化，当前眼动校准不再适用，请重新校准。')}
   }
   function report(rows){
     const a=rows.filter(r=>!r.practice&&r.valid!==0&&r.eyeTracking?.requested);
@@ -172,15 +225,16 @@ globalThis.GazeLab = (() => {
     el('gaze-enable').onclick=calibrate;el('gaze-stop').onclick=()=>stop();el('gaze-stop-live').onclick=()=>stop();el('gaze-cancel').onclick=()=>stop();
     el('gaze-consent').onchange=()=>{if(!el('gaze-consent').checked)stop()};
     el('participant').addEventListener('input',()=>{if(enabled)check()});
-    window.addEventListener('resize',()=>{note('viewport_changed');if(enabled)stop('窗口变化，眼动已关闭，请重新校准。')});
-    window.addEventListener('blur',()=>{note('focus_lost');if(enabled)stop('页面失去焦点，眼动已关闭，请重新校准。')});
+    window.addEventListener('resize',()=>{if(enabled&&!sameSize(calibration?.viewport)){if(busy){stop('校准时窗口变化，请重新校准。','calibration_interrupted',false);return}ready=false;invalidate('viewport_changed','窗口尺寸变化，请返回首页重新校准；当前试次不纳入眼动。');paused=true;globalThis.webgazer?.pause()}});
+    window.addEventListener('blur',()=>suspend('focus_lost','页面失焦，当前眼动试次不纳入；回到前台后自动恢复后续采样。'));
+    window.addEventListener('focus',resume);
     window.addEventListener('scroll',()=>{
       if(active?.recording&&((window.scrollX||0)!==active.snapshot.scroll.x||(window.scrollY||0)!==active.snapshot.scroll.y)){
-        note('viewport_scrolled');stop('试次中页面滚动，眼动已关闭，请重新校准。');
+        invalidate('viewport_scrolled','试次中页面滚动，当前眼动试次不纳入；摄像头保留，下一试次重新定位采样。');
       }
     },{passive:true});
-    document.addEventListener('visibilitychange',()=>{if(document.hidden){note('page_hidden');if(enabled)stop('页面进入后台，眼动已关闭，请重新校准。')}});
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend('page_hidden','页面进入后台，暂停眼动；回到前台后恢复后续试次。');else resume()});
     window.addEventListener('pagehide',()=>stop());
   }
-  return {init,begin,end,stop,check,report,version:VERSION};
+  return {init,begin,end,stop,check,report,diagnostics,version:VERSION};
 })();

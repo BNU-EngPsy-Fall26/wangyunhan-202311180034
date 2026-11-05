@@ -22,3 +22,5 @@ svg.change-art{display:block;width:min(900px,100%);height:auto;aspect-ratio:900/
 #gaze-target{position:absolute;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;padding:0;background:#bd5c24;color:white;box-shadow:0 0 0 6px #bd5c2426}
 #gaze-target:disabled{opacity:1;cursor:default}
 #gaze-stop-live{position:fixed;right:10px;bottom:10px;z-index:10001;background:#52677e;font-size:12px;padding:8px}
+.gaze-live-status[hidden]{display:none!important}.gaze-live-status{position:fixed;left:10px;bottom:10px;z-index:9998;max-width:min(680px,calc(100vw - 200px));padding:8px 12px;border-radius:8px;background:#173b53ee;color:#fff;font-size:12px;line-height:1.5;pointer-events:none;box-shadow:0 2px 10px #173b5322}
+body:has(#view-run.active) main{margin-top:18px;margin-bottom:18px}

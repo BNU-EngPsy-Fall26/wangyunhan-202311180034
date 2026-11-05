@@ -29,9 +29,10 @@
     <section id="view-result" class="view"><p class="eyebrow">本轮完成 · 你的本次结果</p><h1 id="result-title">结果</h1><div id="result-content"></div><div class="upload-mode"><label><input id="upload-test" type="checkbox" checked>测试提交（实验名加 test_ 前缀，不计正式招募）</label><p>本地默认测试；公开网页默认正式，测试公开网址请加 ?test=1 或勾选此项。上传精简计分与眼动汇总；完整轨迹请下载本机JSON/CSV。网络中断时先核对后台记录，再决定是否重试。</p></div><div class="result-actions"><button id="submit">提交本实验数据</button><button class="secondary" id="download">下载本机 JSON</button><button class="secondary" id="download-csv">下载本机 CSV</button><button class="secondary" data-home>返回实验目录</button></div><div id="submit-status" role="status" aria-live="polite"></div></section>
   </main>
   <button id="gaze-stop-live" hidden type="button">关闭摄像头眼动</button>
+  <div id="gaze-live-status" class="gaze-live-status" hidden role="status" aria-live="polite"></div>
   <div id="gaze-overlay" hidden role="dialog" aria-modal="true" aria-label="眼动校准与验证">
     <p id="gaze-instructions">准备校准</p><button id="gaze-cancel" type="button">取消并关闭摄像头</button>
     <button id="gaze-target" type="button" aria-label="注视并点击校准点">●</button>
   </div>
-  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1-upload1"></script>
+  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1.1"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2.1"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1.1"></script>
 </body></html>
