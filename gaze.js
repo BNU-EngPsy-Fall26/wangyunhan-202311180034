@@ -1,6 +1,6 @@
 /* Optional webcam estimates. No video recording, automatic uploads or task-click training. */
 globalThis.GazeLab = (() => {
-  const VERSION='webgazer-aoi-v1.4', MAX_GAP=200, STEP=50;
+  const VERSION='webgazer-aoi-v1.5', MAX_GAP=200, STEP=50;
   let enabled=false, ready=false, busy=false, generation=0, calibration=null;
   let active=null, validation=null, owner=null, lastSample=-Infinity, loadPromise=null;
   let selected=false,paused=false,lastIssue=null,callbacks=0,predictions=0,nullPredictions=0,lastPredictionAt=null,lastBadgeAt=-Infinity,healthTimer=null;
@@ -208,12 +208,12 @@ globalThis.GazeLab = (() => {
             const after=wg.getRegression?.()[0]?.getData?.().length;
             if(before!==undefined&&after!==before+1){info.textContent='未记录到可用眼部特征，请注视圆点，确认脸部在镜头中后再点击。';return}
             trainingTargets.push({...shown,point:i+1,click:clicks+1});
-            clicks++;target.textContent=String(5-clicks);
+            clicks++;target.textContent='';info.textContent=`校准 ${i+1}/9：注视固定中心小点，已记录 ${clicks}/5 次；外圈缩放时中心不动。`;
             if(clicks===5){target.onclick=null;resolve()}
           };
           // A cancellation polling loop releases this promise without capturing camera data.
           const check=()=>{if(token!==generation){resolve();return}if(clicks<5)setTimeout(check,200)};check();
-        });target.textContent='●';
+        });target.textContent='';
       }
       if(token!==generation)return;
       info.textContent='九点点击完成；接下来还需通过五点独立验证。只看圆点，不点击。';target.disabled=true;
@@ -231,7 +231,7 @@ globalThis.GazeLab = (() => {
       const threshold=Math.min(size.width,size.height)*.15;
       const geometryOK=[...trainingTargets,...results].every(p=>p.layoutErrorPx<=2);
       ready=geometryOK&&sameSize(size)&&results.every(r=>r.n>=8)&&error!==null&&error<=threshold;
-      calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,targetSettleMs:800,validationSettleMs:1000,validationMeasureMs:2500,
+      calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,targetSettleMs:800,validationSettleMs:1000,validationMeasureMs:2500,targetAppearance:'fixed-center-breathing-ring-v1',
         trainingCount:trainingTargets.length,trainingTargets,geometryOK,devicePixelRatio:devicePixelRatio||1,visualViewport:window.visualViewport?{width:window.visualViewport.width,height:window.visualViewport.height,scale:window.visualViewport.scale,offsetLeft:window.visualViewport.offsetLeft,offsetTop:window.visualViewport.offsetTop}:null,
         validation:results,medianErrorPx:error,thresholdPx:threshold,passed:ready};
       if(el('gaze-diagnostic'))el('gaze-diagnostic').hidden=false;
