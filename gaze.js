@@ -1,6 +1,6 @@
 /* Optional webcam estimates. No video recording, automatic uploads or task-click training. */
 globalThis.GazeLab = (() => {
-  const VERSION='webgazer-aoi-v1.1', MAX_GAP=200, STEP=50;
+  const VERSION='webgazer-aoi-v1.2', MAX_GAP=200, STEP=50;
   let enabled=false, ready=false, busy=false, generation=0, calibration=null;
   let active=null, validation=null, owner=null, lastSample=-Infinity, loadPromise=null;
   let selected=false,paused=false,lastIssue=null,callbacks=0,predictions=0,nullPredictions=0,lastPredictionAt=null,lastBadgeAt=-Infinity,healthTimer=null;
@@ -99,11 +99,23 @@ globalThis.GazeLab = (() => {
     }
     return {viewport:viewport(),scroll:{x:window.scrollX||0,y:window.scrollY||0},aois};
   }
+  function readiness(){
+    check();resume();
+    if(!selected)return {ok:true,requested:false,message:'本次未选择眼动'};
+    let message='';
+    if(busy)message='校准/验证尚未完成，请完成九点校准和五点独立验证。';
+    else if(!enabled)message=calibration?.passed===false?'五点独立验证未通过，九点点击完成后仍需验证通过。':`摄像头采样已停止（${lastIssue||'尚未启动'}），请重新校准。`;
+    else if(!sameSize(calibration?.viewport))message=`窗口尺寸已变化：校准时 ${calibration?.viewport?.width||'?'}×${calibration?.viewport?.height||'?'}，现在 ${innerWidth}×${innerHeight}。请在当前窗口重新校准。`;
+    else if(!ready)message='校准已失效，请在当前窗口重新完成校准和验证。';
+    else if(paused||document.hidden)message='页面尚未恢复到前台，请返回本页后重试。';
+    return {ok:!message,requested:true,message};
+  }
   function begin(kind,item,phase,origin=performance.now()){
     if(active)end();
     // Normalize page position before capturing AOIs. Delayed automatic scroll events
     // at this same position must not terminate the webcam for subsequent trials.
     window.scrollTo?.(0,0);
+    resume();
     const requested=selected,calibrated=enabled&&ready&&!paused&&sameSize(calibration?.viewport);
     active={start:origin,requested,calibrated,samples:[],reasons:[],snapshot:snapshot(kind,item),phase,
       calibration:calibration?JSON.parse(JSON.stringify(calibration)):null,startDiagnostics:diagnostics()};lastSample=-Infinity;
@@ -112,7 +124,7 @@ globalThis.GazeLab = (() => {
     if(requested&&!enabled&&lastIssue)active.reasons.push(lastIssue);
     if(!requested||!calibrated)active.recording=false;else active.recording=true;
     if(active.recording&&document.hidden)invalidate('page_hidden');
-    if(requested)badge(active.recording?'眼动已开始采样；请保持页面前台与窗口不变。':'眼动未进入采样：请返回首页查看校准/验证状态。');
+    if(requested)badge(active.recording?'眼动已开始采样；请保持页面前台与窗口不变。':'眼动未进入采样：'+readiness().message);
   }
   function end(){
     if(!active)return null;
@@ -236,5 +248,5 @@ globalThis.GazeLab = (() => {
     document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend('page_hidden','页面进入后台，暂停眼动；回到前台后恢复后续试次。');else resume()});
     window.addEventListener('pagehide',()=>stop());
   }
-  return {init,begin,end,stop,check,report,diagnostics,version:VERSION};
+  return {init,begin,end,stop,check,readiness,calibrate,report,diagnostics,version:VERSION};
 })();
