@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>群体结果与模型对照｜注意实验室</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="analysis.css"></head>
+<body><header class="top"><div class="brand">注意实验室 · 研究结果</div><a href="index.html">返回实验</a></header>
+<main><h1>群体结果与模型对照</h1><p class="lead">导入真实参与者的本项目JSON或CSV，在本机计算被试内效应。文件不上传，刷新即清除。此页不会自动把本机测试或文献数据当作参与者数据。</p>
+<details class="analysis-card"><summary>回看一份个人结果（不进入群体统计）</summary><p>可导入之前下载的个人JSON/CSV，用新版图表回看，无需重做实验。</p><label for="personal-file">选择一份会话文件</label><input id="personal-file" type="file" accept=".json,.csv"><p id="personal-status" role="status"></p></details>
+<div id="personal-replay"></div>
+<section class="analysis-card"><label for="result-files">选择匿名数据文件（可多选）</label><input id="result-files" type="file" multiple accept=".json,.csv"><p>支持本项目schemaVersion 3/4完整导出；课程平台其他CSV结构须先明确映射，不自动猜测。</p><label class="analysis-check"><input id="confirm-real" type="checkbox">我确认导入的是已同意参与的他人真实匿名数据，已排除本人试跑、模拟数据和文献参考数据</label><p>该声明由研究者负责，程序无法证明真人身份或数据真实性。</p><button id="analyze" type="button">分析选中文件</button> <button id="clear-results" class="secondary" type="button">清除本页数据</button><p id="import-status" role="status">待收集：尚未导入真实参与者数据。</p></section>
+<section class="analysis-card"><label for="result-version">实验及版本</label><select id="result-version"><option value="">尚无数据</option></select><button id="export-summary" type="button" class="secondary" disabled>导出分析与溯源JSON</button></section>
+<div id="group-results"><section class="analysis-card"><h2>尚无群体实测结果</h2><p>请先完成真实招募并导入数据。至少5名他人的完整配对数据才达到课程人数要求；本页不会生成示例参与者、虚构显著性或补齐试次。</p></section></div>
+<section class="analysis-card"><h2>冻结的SEEV模型预测</h2><p>以下只显示设计参数算出的预测。导入合格眼动数据后，上方群体结果会展示实测对照。</p><div id="model-preview"></div></section>
+<p><a href="研究设计与文献对照.md">研究设计、预测与完整文献</a> · <a href="眼动接入与变量数据字典.md">数据字段与眼动质量口径</a></p></main>
+<script src="analysis.js"></script><script src="analysis-viz.js?v=2"></script><script src="results.js"></script></body></html>

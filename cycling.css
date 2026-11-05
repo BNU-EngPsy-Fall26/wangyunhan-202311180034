@@ -1,0 +1,20 @@
+.cycle-lab{position:relative;width:100%;height:min(64vh,650px);min-height:430px;background:#253c49;overflow:hidden;border-radius:16px}
+#cycle-road{display:block;width:100%;height:100%}
+.cycle-banner{position:absolute;top:0;left:0;right:0;height:43px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#122a3be8;color:#ecf2f3;font-size:13px}
+.cycle-banner span{color:#d3e1df}
+.cycle-phone{position:absolute;left:24px;bottom:16px;height:calc(100% - 220px);max-height:300px;width:auto;aspect-ratio:9/17;background:#14262e;border:6px solid #18242c;border-radius:21px;overflow:hidden;box-shadow:0 5px 22px #081b3460;display:flex;flex-direction:column;color:#d6e5e5}
+#cycle-video-slot{width:100%;flex:1;min-height:0;background:#192e36}.cycle-phone video{display:block;width:100%;height:100%;object-fit:cover;background:#192e36}.cycle-phone video[hidden]{display:none}
+.phone-notch{position:absolute;left:30%;top:0;width:40%;height:9px;background:#18242c;border-radius:0 0 8px 8px;z-index:1}
+.phone-idle{flex:1;display:grid;place-items:center;background:linear-gradient(#233944,#1c2c37);color:#7d989d;font-size:14px}
+#phone-caption{height:35px;font-size:10px;display:grid;place-items:center;text-align:center;line-height:1.3;background:#182b35}
+.cycle-overlay{position:absolute;left:29%;right:24%;top:45%;padding:22px;background:#152e40ed;color:#fff;text-align:center;border-radius:14px;font-size:20px;pointer-events:none}
+.cycle-overlay[hidden]{display:none}
+.cycle-controls{position:absolute;right:15px;bottom:19px;padding:10px 12px;background:#102c3cda;color:#e0e8e8;border-radius:8px;font-size:11px;line-height:1.8}
+.block-break{width:100%;padding:45px;text-align:center;background:#f0f5f5;line-height:1.9}.block-break h2{color:#10284f}
+.bike-instructions{background:#fff;padding:28px;border:1px solid #dce3ed;border-radius:16px;margin:20px 0}.bike-instructions h1{font-size:34px}.instruction-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.instruction-grid article{background:#f1f5f8;padding:18px;border-radius:10px;line-height:1.8}.instruction-grid p{margin:8px 0 0;font-size:14px}.instruction-grid b{color:#10284f}.instruction-timeline{padding:18px;background:#e8f0f2;border-radius:10px;line-height:1.8}kbd{display:inline-block;min-width:25px;text-align:center;background:#fff;border:1px solid #bdcbd4;border-bottom-width:3px;border-radius:5px;color:#10284f;font:700 15px sans-serif;padding:1px 5px}
+.practice-review{width:100%;padding:28px;background:#f4f7fa;line-height:1.8}.practice-review h2{color:#10284f}.review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}.review-grid article{background:white;border:1px solid #dce3ed;border-radius:10px;padding:18px}.review-grid p{font-size:14px;margin:8px 0}.practice-review>button{min-width:210px}.practice-review button:focus-visible{outline:3px solid #c89f3d;outline-offset:4px}
+@media(max-width:800px){.instruction-grid{grid-template-columns:1fr}}
+.change-scene{cursor:crosshair;user-select:none}.scene-ground,.scene-road{z-index:0;pointer-events:none}.scene-building,.scene-tree,.scene-car,.scene-sign{z-index:1}.change-answer{outline:3px dashed #b13f32;outline-offset:5px}.change-hint{font-size:14px;line-height:1.7;color:#435872}.change-mask{font-size:24px}
+.change-art{display:block;width:min(900px,96%);height:auto;aspect-ratio:900/420;touch-action:manipulation;border-radius:12px;background:#d9dee0}
+#view-run{max-width:1120px;margin:auto}body:has(#view-run.active) main{margin-top:18px}body:has(#view-run.active) footer{display:none}
+#response-area{min-height:66px}#response-area button{margin:0 6px}.table-scroll{overflow:auto}#result-content{max-width:100%}.effect-box{border-left:3px solid #c89f3d;background:#fff;padding:16px 20px;margin:22px 0}

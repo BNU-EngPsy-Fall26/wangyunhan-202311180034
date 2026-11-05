@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>注意实验室｜注意分配与变化觉察</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="cycling.css"><link rel="stylesheet" href="analysis.css">
+</head>
+<body>
+  <header class="top"><div class="brand">注意实验室 <span>工程心理学 · W5–W8</span></div><a href="https://attention-lab-production.up.railway.app/hw2" target="_blank" rel="noreferrer">作业收数通道 ↗</a></header>
+  <main>
+    <section id="view-home" class="view active">
+      <p class="eyebrow">注意分配 · 视觉采样 · 变化觉察</p><h1>看哪里，<em>看见什么</em></h1>
+      <p class="lead">请依次完成屏幕骑行和图像找不同两个任务。开始前请阅读操作说明，并先完成练习。</p>
+      <div class="consent"><strong>参与说明</strong><p>实验仅为屏幕模拟。请在安全、静止的环境中参与，不要在真实骑行或步行时操作。数据使用匿名编号；你可以随时关闭页面退出。本实验用于课程作业，骑行约需 9–12 分钟，两个任务预计共 15–22 分钟；摄像头眼动为可选功能，须另行同意并校准；不录制、保存或上传视频/人脸图像。未提交的数据仅在当前页面内存中保存，刷新会丢失。下载文件保存在你的设备；点击提交会将匿名试次上传至课程注意实验室。骑行需桌面键盘，窗口至少 960×650。</p><label><input id="consent" type="checkbox">我已阅读说明，自愿参与</label><label>匿名编号 <input id="participant" maxlength="24" placeholder="例如 P01（不要填姓名/学号）"></label><label>招募顺序 <input id="order-number" type="number" min="1" max="9999" value="1" aria-label="由实验者填写招募顺序"></label><p>由实验者按招募先后填写 1、2、3…，用于安排任务顺序；编号不涉及个人身份。</p></div>
+      <section class="consent" aria-label="可选摄像头眼动">
+        <strong>可选：webcam 眼动</strong>
+        <p>WebGazer 在本机估计视线，不录制视频。仅在任务呈现期间记录时间、估计视线坐标、兴趣区（AOI）与质量指标；校准只保存误差统计。选择提交实验数据时，这些匿名数值随行为数据一起上传；下载也包含这些数值。拒绝或关闭眼动仍可完成行为实验。请保持头部和窗口不动。</p>
+        <label><input id="gaze-consent" type="checkbox">我自愿启用摄像头估计视线，并同意保存及按提交按钮上传匿名眼动数值</label>
+        <div class="result-actions"><button id="gaze-enable" type="button">启用并校准眼动</button><button id="gaze-stop" type="button" class="secondary">关闭摄像头</button></div>
+        <p id="gaze-status" role="status">未启用。启用时需要浏览器摄像头授权；建议 HTTPS 或 localhost。</p>
+      </section>
+      <div class="cards">
+        <article><span class="tag">实验一 · 屏幕骑行</span><h2>模拟骑行与短视频</h2><p>左右移动避开车流，结合前方及两侧后视镜判断危险；手机播放短片时，还需观看并按提示判断类别。</p><button data-start="bike">查看任务</button></article>
+        <article><span class="tag">实验二 · 图像观察</span><h2>图像找不同</h2><p>优先关注交通安全信息，观察交替出现的图像，发现变化后直接点击变化的位置。</p><button data-start="change">查看任务</button></article>
+      </div>
+      <p class="note">课程项目码：<strong>P86GHC</strong>。练习数据不会上传。正式试次仅在你点击“提交本实验数据”后上传；也可下载本机JSON或CSV备份。</p>
+    </section>
+    <section id="view-task" class="view"><button class="back" data-home>← 实验目录</button><div id="task-content"></div><button id="begin">开始练习</button></section>
+    <section id="view-run" class="view"><div class="run-head"><span id="phase-label">练习</span><span id="progress"></span></div><div id="stimulus" class="stimulus"></div><div id="response-area"></div><p id="run-feedback" aria-live="polite"></p></section>
+    <section id="view-result" class="view"><p class="eyebrow">本轮完成 · 你的本次结果</p><h1 id="result-title">结果</h1><div id="result-content"></div><div class="upload-mode"><label><input id="upload-test" type="checkbox" checked>测试提交（实验名加 test_ 前缀，不计正式招募）</label><p>本地默认测试；公开网页默认正式，测试公开网址请加 ?test=1 或勾选此项。上传精简计分与眼动汇总；完整轨迹请下载本机JSON/CSV。网络中断时先核对后台记录，再决定是否重试。</p></div><div class="result-actions"><button id="submit">提交本实验数据</button><button class="secondary" id="download">下载本机 JSON</button><button class="secondary" id="download-csv">下载本机 CSV</button><button class="secondary" data-home>返回实验目录</button></div><div id="submit-status" role="status" aria-live="polite"></div></section>
+  </main>
+  <button id="gaze-stop-live" hidden type="button">关闭摄像头眼动</button>
+  <div id="gaze-overlay" hidden role="dialog" aria-modal="true" aria-label="眼动校准与验证">
+    <p id="gaze-instructions">准备校准</p><button id="gaze-cancel" type="button">取消并关闭摄像头</button>
+    <button id="gaze-target" type="button" aria-label="注视并点击校准点">●</button>
+  </div>
+  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1-upload1"></script>
+</body></html>
