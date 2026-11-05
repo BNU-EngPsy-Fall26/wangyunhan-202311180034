@@ -17,7 +17,7 @@ svg.change-art{display:block;width:min(900px,100%);height:auto;aspect-ratio:900/
 /* Calibration uses viewport pixels, the same space returned by WebGazer. */
 #gaze-overlay[hidden]{display:none!important}
 #gaze-overlay{position:fixed;inset:0;background:#f5f7fa;z-index:10000}
-#gaze-instructions{position:absolute;left:25%;right:25%;top:24%;text-align:center;line-height:1.8;pointer-events:none}
+#gaze-instructions{position:absolute;left:15%;right:15%;bottom:0;top:auto;margin:0;padding:6px;background:#f5f7fa;text-align:center;font-size:13px;line-height:1.5;pointer-events:none}
 #gaze-cancel{position:absolute;right:12px;top:12px;background:#52677e}
 #gaze-target{position:absolute;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;padding:0;background:#bd5c24;color:white;box-shadow:0 0 0 6px #bd5c2426}
 #gaze-target:disabled{opacity:1;cursor:default}

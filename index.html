@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>注意实验室｜注意分配与变化觉察</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="cycling.css"><link rel="stylesheet" href="analysis.css">
+  <title>注意实验室｜注意分配与变化觉察</title><link rel="stylesheet" href="styles.css?v=gaze1.4"><link rel="stylesheet" href="cycling.css"><link rel="stylesheet" href="analysis.css">
 </head>
 <body>
   <header class="top"><div class="brand">注意实验室 <span>工程心理学 · W5–W8</span></div><a href="https://attention-lab-production.up.railway.app/hw2" target="_blank" rel="noreferrer">作业收数通道 ↗</a></header>
@@ -15,7 +15,7 @@
         <strong>可选：webcam 眼动</strong>
         <p>WebGazer 在本机估计视线，不录制视频。仅在任务呈现期间记录时间、估计视线坐标、兴趣区（AOI）与质量指标；校准只保存误差统计。选择提交实验数据时，这些匿名数值随行为数据一起上传；下载也包含这些数值。拒绝或关闭眼动仍可完成行为实验。请保持头部和窗口不动。</p>
         <label><input id="gaze-consent" type="checkbox">我自愿启用摄像头估计视线，并同意保存及按提交按钮上传匿名眼动数值</label>
-        <div class="result-actions"><button id="gaze-enable" type="button">启用并校准眼动</button><button id="gaze-stop" type="button" class="secondary">关闭摄像头</button></div>
+        <div class="result-actions"><button id="gaze-enable" type="button">启用并校准眼动</button><button id="gaze-diagnostic" type="button" class="secondary" hidden>下载校准排查报告</button><button id="gaze-stop" type="button" class="secondary">关闭摄像头</button></div>
         <p id="gaze-status" role="status">未启用。启用时需要浏览器摄像头授权；建议 HTTPS 或 localhost。</p>
       </section>
       <div class="cards">
@@ -34,5 +34,5 @@
     <p id="gaze-instructions">准备校准</p><button id="gaze-cancel" type="button">取消并关闭摄像头</button>
     <button id="gaze-target" type="button" aria-label="注视并点击校准点">●</button>
   </div>
-  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1.3"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2.1"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1.2"></script>
+  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1.4"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2.1"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1.2"></script>
 </body></html>
