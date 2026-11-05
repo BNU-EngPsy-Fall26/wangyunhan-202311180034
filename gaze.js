@@ -1,6 +1,6 @@
 /* Optional webcam estimates. No video recording, automatic uploads or task-click training. */
 globalThis.GazeLab = (() => {
-  const VERSION='webgazer-aoi-v1.2', MAX_GAP=200, STEP=50;
+  const VERSION='webgazer-aoi-v1.3', MAX_GAP=200, STEP=50;
   let enabled=false, ready=false, busy=false, generation=0, calibration=null;
   let active=null, validation=null, owner=null, lastSample=-Infinity, loadPromise=null;
   let selected=false,paused=false,lastIssue=null,callbacks=0,predictions=0,nullPredictions=0,lastPredictionAt=null,lastBadgeAt=-Infinity,healthTimer=null;
@@ -186,11 +186,16 @@ globalThis.GazeLab = (() => {
       for(let i=0;i<points.length;i++){
         if(token!==generation)return;
         const [x,y]=points[i];target.style.left=x+'px';target.style.top=y+'px';target.disabled=false;
+        const shownAt=performance.now();
         let clicks=0;info.textContent=`校准 ${i+1}/9：保持头部不动，注视圆点，每隔约半秒点击，共5次。`;
         await new Promise(resolve=>{
           let last=-Infinity;target.onclick=()=>{
-            if(performance.now()-last<450)return;last=performance.now();
-            wg.recordScreenPosition(x,y,'click');clicks++;target.textContent=String(5-clicks);
+            if(performance.now()-shownAt<800||performance.now()-last<500)return;last=performance.now();
+            const before=wg.getRegression?.()[0]?.getData?.().length;
+            wg.recordScreenPosition(x,y,'click');
+            const after=wg.getRegression?.()[0]?.getData?.().length;
+            if(before!==undefined&&after!==before+1){info.textContent='未记录到可用眼部特征，请注视圆点，确认脸部在镜头中后再点击。';return}
+            clicks++;target.textContent=String(5-clicks);
             if(clicks===5){target.onclick=null;resolve()}
           };
           // A cancellation polling loop releases this promise without capturing camera data.
@@ -204,18 +209,18 @@ globalThis.GazeLab = (() => {
         if(token!==generation)return;
         const x=nx*size.width,y=ny*size.height;target.style.left=x+'px';target.style.top=y+'px';
         info.textContent=`独立验证 ${results.length+1}/5：只看圆点，不点击。九点点击完成不等于验证通过。`;
-        validation={x,y,from:performance.now()+500,errors:[]};await wait(1800);
+        validation={x,y,from:performance.now()+1000,errors:[]};await wait(3500);
         if(token!==generation)return;
         results.push({x,y,n:validation.errors.length,medianErrorPx:median(validation.errors)});validation=null;
       }
       const error=median(results.map(r=>r.medianErrorPx).filter(Number.isFinite));
       const threshold=Math.min(size.width,size.height)*.15;
       ready=sameSize(size)&&results.every(r=>r.n>=8)&&error!==null&&error<=threshold;
-      calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,
+      calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,targetSettleMs:800,validationSettleMs:1000,validationMeasureMs:2500,
         validation:results,medianErrorPx:error,thresholdPx:threshold,passed:ready};
       overlay.hidden=true;
       if(ready){lastIssue=null;status(`眼动已就绪：五点验证通过，误差中位数 ${Math.round(error)} px。窗口或匿名编号变化后需重校准。`)}
-      else stop(`五点独立验证未通过：各点有效预测数 ${results.map(r=>r.n).join('/')}（每点至少8）；误差 ${error===null?'缺失':Math.round(error)+'px'}，阈值 ${Math.round(threshold)}px。请调整光线/坐姿后重试。`,'calibration_failed',false);
+      else stop(`五点独立验证未通过：各点有效预测数 ${results.map(r=>r.n).join('/')}（每点至少8）；各点误差 ${results.map(r=>r.medianErrorPx===null?'缺失':Math.round(r.medianErrorPx)+'px').join('/')}；误差中位数 ${error===null?'缺失':Math.round(error)+'px'}，阈值 ${Math.round(threshold)}px。请调整光线/坐姿后重试。`,'calibration_failed',false);
     }catch(e){stop('眼动启动失败：'+e.message+'。可重试或继续行为任务。','startup_failed',false)}
     finally{busy=false;el('gaze-enable').disabled=false}
   }
