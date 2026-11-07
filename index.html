@@ -13,7 +13,7 @@
       <div class="consent"><strong>参与说明</strong><p>实验仅为屏幕模拟。请在安全、静止的环境中参与，不要在真实骑行或步行时操作。数据使用匿名编号；你可以随时关闭页面退出。本实验用于课程作业，骑行约需 9–12 分钟，两个任务预计共 15–22 分钟；摄像头眼动为可选功能，须另行同意并校准；不录制、保存或上传视频/人脸图像。未提交的数据仅在当前页面内存中保存，刷新会丢失。下载文件保存在你的设备；点击提交会将匿名试次上传至课程注意实验室。骑行需桌面键盘，窗口至少 960×650。</p><label><input id="consent" type="checkbox">我已阅读说明，自愿参与</label><label>匿名编号 <input id="participant" maxlength="24" placeholder="例如 P01（不要填姓名/学号）"></label><label>招募顺序 <input id="order-number" type="number" min="1" max="9999" value="1" aria-label="由实验者填写招募顺序"></label><p>由实验者按招募先后填写 1、2、3…，用于安排任务顺序；编号不涉及个人身份。</p></div>
       <section class="consent" aria-label="可选摄像头眼动">
         <strong>可选：webcam 眼动</strong>
-        <p>WebGazer 在本机估计视线，不录制视频。仅在任务呈现期间记录时间、估计视线坐标、兴趣区（AOI）与质量指标；校准只保存误差统计。选择提交实验数据时，这些匿名数值随行为数据一起上传；下载也包含这些数值。拒绝或关闭眼动仍可完成行为实验。请保持头部和窗口不动。</p>
+        <p>WebGazer 在本机估计视线，不录制视频。仅在任务呈现期间记录时间、估计视线坐标、兴趣区（AOI）与质量指标；校准只保存误差统计。骑行眼动轨迹会附带本试次的道路截图与短片帧（不含摄像头画面），用于本机展示及完整JSON/CSV备份，不随课程精简接口上传。选择提交实验数据时，这些匿名数值随行为数据一起上传；下载也包含这些数值。拒绝或关闭眼动仍可完成行为实验。请保持头部和窗口不动。</p>
         <label><input id="gaze-consent" type="checkbox">我自愿启用摄像头估计视线，并同意保存及按提交按钮上传匿名眼动数值</label>
         <div class="result-actions"><button id="gaze-enable" type="button">启用并校准眼动</button><button id="gaze-diagnostic" type="button" class="secondary" hidden>下载校准排查报告</button><button id="gaze-stop" type="button" class="secondary">关闭摄像头</button></div>
         <p id="gaze-status" role="status">未启用。启用时需要浏览器摄像头授权；建议 HTTPS 或 localhost。</p>
@@ -34,5 +34,5 @@
     <p id="gaze-instructions">准备校准</p><button id="gaze-cancel" type="button">取消并关闭摄像头</button>
     <button id="gaze-target" type="button" aria-label="注视固定中心小点并点击校准靶标"></button>
   </div>
-  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1.7"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2.1"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1.2"></script>
+  <footer>课堂模拟实验 · 数据只在明确提交后上传 · <a href="results.html">群体分析</a></footer><script src="bike.js?v=frame1"></script><script src="change-scenes.js?v=5.1"></script><script src="gaze.js?v=1.9"></script><script src="analysis.js?v=1"></script><script src="analysis-viz.js?v=2.2"></script><script src="course-upload.js?v=1"></script><script src="app.js?v=5.1-gaze1.2"></script>
 </body></html>

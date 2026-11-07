@@ -1,6 +1,6 @@
 /* Optional webcam estimates. No video recording, automatic uploads or task-click training. */
 globalThis.GazeLab = (() => {
-  const VERSION='webgazer-aoi-v1.7', MAX_GAP=200, STEP=50;
+  const VERSION='webgazer-aoi-v1.9', MAX_GAP=200, STEP=50;
   let enabled=false, ready=false, busy=false, generation=0, calibration=null;
   let active=null, validation=null, owner=null, lastSample=-Infinity, loadPromise=null;
   let selected=false,paused=false,lastIssue=null,callbacks=0,predictions=0,nullPredictions=0,lastPredictionAt=null,lastBadgeAt=-Infinity,healthTimer=null;
@@ -121,6 +121,30 @@ globalThis.GazeLab = (() => {
     else if(paused||document.hidden)message='页面尚未恢复到前台，请返回本页后重试。';
     return {ok:!message,requested:true,message};
   }
+  function captureBikeFrame(atMs){
+    if(!active?.requested||active.snapshot.stimulusFrame||active.snapshot.frameCaptureError)return;
+    const started=performance.now();
+    try{
+      const road=document.querySelector('#cycle-road');
+      if(!road||!road.width||!road.height)return;
+      const layers=[];
+      function capture(source,r,kind,maxWidth){
+        const c=document.createElement('canvas');c.width=Math.max(1,Math.round(Math.min(maxWidth,r.w)));c.height=Math.max(1,Math.round(c.width*r.h/r.w));
+        const context=c.getContext('2d');
+        const sw=source.videoWidth||source.width,sh=source.videoHeight||source.height;
+        if(!sw||!sh)throw Error('画面尺寸尚未就绪');
+        // Match object-fit:cover for the actual video element; road canvas has the same ratio.
+        const scale=Math.max(c.width/sw,c.height/sh),cropW=c.width/scale,cropH=c.height/scale;
+        context.drawImage(source,(sw-cropW)/2,(sh-cropH)/2,cropW,cropH,0,0,c.width,c.height);
+        layers.push({kind,rect:r,dataUrl:c.toDataURL('image/jpeg',.68)});
+      }
+      capture(road,rect(road.getBoundingClientRect()),'road_canvas',960);
+      const phone=document.querySelector('.cycle-phone'),video=document.querySelector('#cycle-video');
+      const phoneOverlay=phone?{rect:rect(phone.getBoundingClientRect()),text:document.querySelector('#phone-caption')?.textContent||''}:null;
+      if(video&&!video.hidden&&video.readyState>=2)capture(video,rect(video.getBoundingClientRect()),'video_frame',240);
+      active.snapshot.stimulusFrame={kind:'bike-rendered-frame-v1',atMs:Math.round(atMs),videoTimeSeconds:video&&!video.hidden?video.currentTime:null,layers,phoneOverlay,captureCostMs:Math.round(performance.now()-started)};
+    }catch(error){active.snapshot.frameCaptureError=String(error.message||error)}
+  }
   function begin(kind,item,phase,origin=performance.now()){
     if(active)end();
     // Normalize page position before capturing AOIs. Delayed automatic scroll events
@@ -228,16 +252,17 @@ globalThis.GazeLab = (() => {
         results.push({...shown,n:validation.errors.length,medianErrorPx:median(validation.errors),medianPredictionX:median(validation.xs),medianPredictionY:median(validation.ys),medianOffsetX:validation.xs.length?median(validation.xs)-shown.x:null,medianOffsetY:validation.ys.length?median(validation.ys)-shown.y:null});validation=null;
       }
       const error=median(results.map(r=>r.medianErrorPx).filter(Number.isFinite));
-      const threshold=Math.min(size.width,size.height)*.15;
+      const threshold=Math.min(size.width,size.height)*.20;
+      const strictThreshold=Math.min(size.width,size.height)*.15;
       const geometryOK=[...trainingTargets,...results].every(p=>p.layoutErrorPx<=2);
       ready=geometryOK&&sameSize(size)&&results.every(r=>r.n>=8)&&error!==null&&error<=threshold;
       calibration={id:Date.now().toString(36),version:VERSION,at:new Date().toISOString(),viewport:size,points:9,clicksPerPoint:5,targetSettleMs:800,validationSettleMs:1000,validationMeasureMs:2500,targetAppearance:'persistent-center-dot-in-target-count-v3',
         trainingCount:trainingTargets.length,trainingTargets,geometryOK,devicePixelRatio:devicePixelRatio||1,visualViewport:window.visualViewport?{width:window.visualViewport.width,height:window.visualViewport.height,scale:window.visualViewport.scale,offsetLeft:window.visualViewport.offsetLeft,offsetTop:window.visualViewport.offsetTop}:null,
-        validation:results,medianErrorPx:error,thresholdPx:threshold,passed:ready};
+        validation:results,medianErrorPx:error,thresholdPx:threshold,thresholdFraction:.20,qualityPolicy:'short-side-20pct-v1',strictThresholdPx:strictThreshold,strictPassed:geometryOK&&sameSize(size)&&results.every(r=>r.n>=8)&&error!==null&&error<=strictThreshold,passed:ready};
       if(el('gaze-diagnostic'))el('gaze-diagnostic').hidden=false;
       overlay.hidden=true;
-      if(ready){lastIssue=null;status(`眼动已就绪：五点验证通过，误差中位数 ${Math.round(error)} px。窗口或匿名编号变化后需重校准。`)}
-      else stop(`${geometryOK?'':'检测到圆点显示坐标与预定位置不一致；'}五点独立验证未通过：各点有效预测数 ${results.map(r=>r.n).join('/')}（每点至少8）；各点误差 ${results.map(r=>r.medianErrorPx===null?'缺失':Math.round(r.medianErrorPx)+'px').join('/')}；误差中位数 ${error===null?'缺失':Math.round(error)+'px'}，阈值 ${Math.round(threshold)}px。请调整光线/坐姿后重试。`,'calibration_failed',false);
+      if(ready){lastIssue=null;status(`眼动已就绪：五点验证通过${calibration.strictPassed?'（亦满足原15%标准）':'（宽松20%标准，仅探索性使用）'}，误差中位数 ${Math.round(error)} px，当前门槛 ${Math.round(threshold)} px。窗口或匿名编号变化后需重校准。`)}
+      else stop(`${geometryOK?'':'检测到圆点显示坐标与预定位置不一致；'}五点独立验证未通过：各点有效预测数 ${results.map(r=>r.n).join('/')}（每点至少8）；各点误差 ${results.map(r=>r.medianErrorPx===null?'缺失':Math.round(r.medianErrorPx)+'px').join('/')}；误差中位数 ${error===null?'缺失':Math.round(error)+'px'}，阈值 ${Math.round(threshold)}px（窗口短边20%）。请调整光线/坐姿后重试。`,'calibration_failed',false);
     }catch(e){stop('眼动启动失败：'+e.message+'。可重试或继续行为任务。','startup_failed',false)}
     finally{busy=false;el('gaze-enable').disabled=false}
   }
@@ -271,5 +296,5 @@ globalThis.GazeLab = (() => {
     document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend('page_hidden','页面进入后台，暂停眼动；回到前台后恢复后续试次。');else resume()});
     window.addEventListener('pagehide',()=>stop());
   }
-  return {init,begin,end,stop,check,readiness,calibrate,report,diagnostics,version:VERSION};
+  return {init,begin,end,stop,check,readiness,calibrate,captureBikeFrame,report,diagnostics,version:VERSION};
 })();
